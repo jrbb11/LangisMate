@@ -1,5 +1,10 @@
 name: Build APK
 
+# <— add this so the runner can fetch actions/* from the GitHub Actions API
+permissions:
+  contents: read   # you already have access to the repo contents
+  actions: read    # now it can pull actions/upload-artifact@v3 (and any other 'uses:')
+
 on:
   push:
     branches: [main]
