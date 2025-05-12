@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'auth_service.dart';
+import '../auth_service.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -80,17 +80,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    final success = await AuthService().signIn(
-                      emailCtrl.text,
-                      passCtrl.text,
-                    );
+                    final success = await AuthService()
+                        .signIn(emailCtrl.text, passCtrl.text);
 
-                    if (!mounted) return;
+                    // ✅ guard BuildContext use after async
+                    if (!context.mounted) return;
 
                     Fluttertoast.showToast(
                       msg: success ? 'Login success' : 'Login failed',
                     );
 
+                    // ✅ guard again before navigation
+                    if (!context.mounted) return;
                     if (success) {
                       Navigator.pushNamed(context, '/dashboard');
                     }
@@ -99,10 +100,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                ),
+                onPressed: () {
+                  // synchronous use of context — no async gap, no guard needed
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RegisterScreen(),
+                    ),
+                  );
+                },
                 child: const Text("Don't have an account? Register here"),
               ),
             ],

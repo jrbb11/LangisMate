@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'auth_service.dart';
+import '../auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,6 +14,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final passCtrl = TextEditingController();
 
   @override
+  void dispose() {
+    emailCtrl.dispose();
+    passCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Register')),
@@ -25,6 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: emailCtrl,
               decoration: const InputDecoration(labelText: 'Email'),
             ),
+            const SizedBox(height: 12),
             TextField(
               controller: passCtrl,
               decoration: const InputDecoration(labelText: 'Password'),
@@ -38,11 +46,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   passCtrl.text,
                 );
 
+                // 1️⃣ Guard State.context use with State.mounted
                 if (!mounted) return;
 
                 Fluttertoast.showToast(
                   msg: success ? 'Registered!' : 'Failed to register',
                 );
+
+                // 2️⃣ Guard BuildContext use with BuildContext.mounted
+                if (!context.mounted) return;
 
                 if (success) {
                   Navigator.pop(context);

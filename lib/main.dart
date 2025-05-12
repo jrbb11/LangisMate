@@ -1,30 +1,54 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'login_screen.dart';
-import 'register_screen.dart';
-import 'dashboard_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'screens/login_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/onboarding_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: 'https://YOUR_PROJECT_ID.supabase.co',
-    anonKey: 'YOUR_PUBLIC_ANON_KEY',
-  );
-  runApp(const MyApp());
+
+  runZonedGuarded(() async {
+    // 1️⃣ Initialize Supabase (or comment this out to test)
+    await Supabase.initialize(
+      url: 'https://krfjzwkrpbeoithyperk.supabase.co',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyZmp6d2tycGJlb2l0aHlwZXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5NTgwMTMsImV4cCI6MjA2MjUzNDAxM30.crr3F74jdqPU7fx9duybm-gaPxoNsG4EklGcJoD5_08',
+    );
+
+    // 2️⃣ Decide your first screen
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('seenOnboarding') ?? false;
+
+    runApp(MyApp(seenOnboarding: seen));
+  }, (error, stack) {
+    // This will show the real error in your debug console
+    debugPrint('🔥 Caught error in main(): $error');
+    debugPrintStack(stackTrace: stack);
+  });
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool seenOnboarding;
+  const MyApp({
+    super.key,
+    required this.seenOnboarding,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: '/login',
+      // 1) Keep the home launcher based on onboarding flag:
+      home: seenOnboarding 
+        ? const LoginScreen() 
+        : const OnboardingScreen(),
+
+      // 2) Then add your named routes in a `routes:` map:
       routes: {
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
+        '/login':      (_) => const LoginScreen(),
+        '/register':   (_) => const RegisterScreen(),
+        '/dashboard':  (_) => const DashboardScreen(),
       },
     );
   }

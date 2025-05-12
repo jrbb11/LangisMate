@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_service.dart';
+import '../auth_service.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -16,6 +16,8 @@ class DashboardScreen extends StatelessWidget {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await AuthService().signOut();
+              // guard navigator call with mounted check
+              if (!context.mounted) return;
               Navigator.pushReplacementNamed(context, '/login');
             },
           )

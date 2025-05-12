@@ -10,8 +10,17 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  supabase_flutter: ^1.10.24
-  fluttertoast: ^8.2.1
+  shared_preferences: ^2.0.15
+
+  # Upgrade to Supabase v2.9.x, which uses sign_in_with_apple >=6.0.0
+  supabase_flutter: ^2.9.0
+
+  # Latest V2-embedding FlutterToast
+  fluttertoast: ^8.2.12
+
+  # (Optional) if you need to reference it directly
+  sign_in_with_apple: ^6.0.0
+
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -24,3 +33,6 @@ flutter:
 
   assets:
     - assets/langismate_logo.png
+    - assets/images/slide1_welcome_to_langismate.png
+    - assets/images/slide2_find_nearby_shops.png
+    - assets/images/slide3_set_maintenance_reminders.png
