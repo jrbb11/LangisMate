@@ -20,7 +20,7 @@ dependencies:
 
   # (Optional) if you need to reference it directly
   sign_in_with_apple: ^6.0.0
-
+  google_sign_in: ^5.4.0
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -36,3 +36,4 @@ flutter:
     - assets/images/slide1_welcome_to_langismate.png
     - assets/images/slide2_find_nearby_shops.png
     - assets/images/slide3_set_maintenance_reminders.png
+    - assets/images/google_logo.png

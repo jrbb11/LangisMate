@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/register_screen.dart';
+import 'screens/registration_screen.dart';
 import 'screens/onboarding_screen.dart';
 
 void main() {
@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
       // 2) Then add your named routes in a `routes:` map:
       routes: {
         '/login':      (_) => const LoginScreen(),
-        '/register':   (_) => const RegisterScreen(),
+        '/register':   (_) => const RegistrationScreen(),
         '/dashboard':  (_) => const DashboardScreen(),
       },
     );
