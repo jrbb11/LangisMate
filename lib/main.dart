@@ -2,53 +2,93 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'theme.dart';
 import 'screens/login_screen.dart';
-import 'screens/dashboard_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/settings_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runZonedGuarded(() async {
-    // 1️⃣ Initialize Supabase (or comment this out to test)
-    await Supabase.initialize(
-      url: 'https://krfjzwkrpbeoithyperk.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyZmp6d2tycGJlb2l0aHlwZXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5NTgwMTMsImV4cCI6MjA2MjUzNDAxM30.crr3F74jdqPU7fx9duybm-gaPxoNsG4EklGcJoD5_08',
-    );
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: 'https://krfjzwkrpbeoithyperk.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyZmp6d2tycGJlb2l0aHlwZXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5NTgwMTMsImV4cCI6MjA2MjUzNDAxM30.crr3F74jdqPU7fx9duybm-gaPxoNsG4EklGcJoD5_08',
+  );
 
-    // 2️⃣ Decide your first screen
-    final prefs = await SharedPreferences.getInstance();
-    final seen = prefs.getBool('seenOnboarding') ?? false;
+  // Load onboarding & theme prefs
+  final prefs = await SharedPreferences.getInstance();
+  final seenOnboarding = prefs.getBool('seenOnboarding') ?? false;
+  final themeIndex = prefs.getInt('themeMode') ?? 0; // 0=system,1=light,2=dark
 
-    runApp(MyApp(seenOnboarding: seen));
-  }, (error, stack) {
-    // This will show the real error in your debug console
-    debugPrint('🔥 Caught error in main(): $error');
-    debugPrintStack(stackTrace: stack);
-  });
+  runZonedGuarded(
+    () {
+      runApp(MyApp(
+        seenOnboarding: seenOnboarding,
+        initialThemeMode: ThemeMode.values[themeIndex],
+      ));
+    },
+    (error, stack) {
+      debugPrint('🔥 Caught error in main(): $error');
+      debugPrintStack(stackTrace: stack);
+    },
+  );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final bool seenOnboarding;
+  final ThemeMode initialThemeMode;
+
   const MyApp({
-    super.key,
+    Key? key,
     required this.seenOnboarding,
-  });
+    required this.initialThemeMode,
+  }) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late ThemeMode _themeMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeMode = widget.initialThemeMode;
+  }
+
+  Future<void> _updateTheme(ThemeMode newMode) async {
+    setState(() => _themeMode = newMode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('themeMode', ThemeMode.values.indexOf(newMode));
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // 1) Keep the home launcher based on onboarding flag:
-      home: seenOnboarding 
-        ? const LoginScreen() 
-        : const OnboardingScreen(),
+      title: 'LangisMate',
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: _themeMode,
 
-      // 2) Then add your named routes in a `routes:` map:
+      // Onboarding flow
+      home: widget.seenOnboarding
+          ? const LoginScreen()
+          : const OnboardingScreen(),
+
+      // Named routes
       routes: {
-        '/login':      (_) => const LoginScreen(),
-        '/register':   (_) => const RegistrationScreen(),
-        '/dashboard':  (_) => const DashboardScreen(),
+        '/login':     (_) => const LoginScreen(),
+        '/register':  (_) => const RegistrationScreen(),
+        '/dashboard': (_) => const DashboardScreen(),
+        '/settings':  (_) => SettingsScreen(
+                           currentMode: _themeMode,
+                           onThemeChanged: _updateTheme,
+                         ),
       },
     );
   }

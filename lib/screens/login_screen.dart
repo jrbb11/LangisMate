@@ -1,3 +1,5 @@
+// lib/screens/login_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../auth_service.dart';
@@ -12,7 +14,31 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final emailCtrl = TextEditingController();
-  final passCtrl = TextEditingController();
+  final passCtrl  = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // This now throws AuthException on failure
+      await AuthService().signIn(emailCtrl.text.trim(), passCtrl.text);
+
+      if (!mounted) return;
+      Fluttertoast.showToast(msg: 'Login successful!');
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } on AuthException catch (err) {
+      if (!mounted) return;
+      Fluttertoast.showToast(msg: err.message);
+    } catch (err) {
+      if (!mounted) return;
+      Fluttertoast.showToast(msg: 'Unexpected error. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +93,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // ─── Login Button ───────────────────────────────────────
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.login),
-                  label: const Text("Login"),
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.login),
+                  label: Text(_isLoading ? 'Logging in…' : 'Login'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: Colors.orange[800],
@@ -79,34 +113,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: () async {
-                    final success = await AuthService()
-                        .signIn(emailCtrl.text, passCtrl.text);
-
-                    // ✅ guard BuildContext use after async
-                    if (!context.mounted) return;
-
-                    Fluttertoast.showToast(
-                      msg: success ? 'Login success' : 'Login failed',
-                    );
-
-                    // ✅ guard again before navigation
-                    if (!context.mounted) return;
-                    if (success) {
-                      Navigator.pushNamed(context, '/dashboard');
-                    }
-                  },
+                  onPressed: _isLoading ? null : _handleLogin,
                 ),
               ),
+
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () {
-                  // synchronous use of context — no async gap, no guard needed
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const RegistrationScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const RegistrationScreen()),
                   );
                 },
                 child: const Text("Don't have an account? Register here"),
