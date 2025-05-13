@@ -7,12 +7,11 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme      = Theme.of(context);
-    final textTheme  = theme.textTheme;
-    final colors     = theme.colorScheme;
-    final accent     = colors.primary;
-    final cardColor  = theme.cardColor;
-    final iconColor  = theme.iconTheme.color;
+    final theme     = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colors    = theme.colorScheme;
+    final accent    = colors.primary;
+    final cardColor = theme.cardColor;
 
     return Scaffold(
       appBar: AppBar(
@@ -21,14 +20,18 @@ class DashboardScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.pushNamed(context, '/settings'),
+            onPressed: () {
+              // Switch to Settings tab in AppShell:
+              DefaultTabController.of(context)?.animateTo(3);
+              // Or if you don't use TabController, push via named route:
+              Navigator.pushNamed(context, '/app', arguments: 3);
+            },
           ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
-          // <-- stretch children to fill width
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ─── Next Oil Change Card ───────────────────────────
@@ -68,19 +71,40 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 24),
 
             // ─── Quick Action Buttons ───────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _ActionButton(icon: Icons.directions_bike, label: 'Log Ride', color: accent, onTap: () {}),
-                _ActionButton(icon: Icons.build,            label: 'Add Maintenance', color: accent, onTap: () {}),
-                _ActionButton(icon: Icons.store_mall_directory, label: 'Find Shop', color: accent, onTap: () {}),
+                _ActionButton(
+                  icon: Icons.directions_bike,
+                  label: 'Log Ride',
+                  color: accent,
+                  onTap: () {
+                    // e.g. open log ride flow
+                  },
+                ),
+                _ActionButton(
+                  icon: Icons.build,
+                  label: 'Add Maintenance',
+                  color: accent,
+                  onTap: () {
+                    // switch to Maintenance tab (index 1)
+                    Navigator.pushNamed(context, '/app', arguments: 1);
+                  },
+                ),
+                _ActionButton(
+                  icon: Icons.store_mall_directory,
+                  label: 'Find Shop',
+                  color: accent,
+                  onTap: () {
+                    // switch to Shops tab (index 2)
+                    Navigator.pushNamed(context, '/app', arguments: 2);
+                  },
+                ),
               ],
             ),
-
             const SizedBox(height: 24),
 
             // ─── Repair Shops Preview ───────────────────────────
@@ -90,35 +114,21 @@ class DashboardScreen extends StatelessWidget {
               child: ListView(
                 children: const [
                   _ShopTile(name: 'Speed Auto Service', distance: '1.2 km'),
-                  _ShopTile(name: 'MotoFix Center',     distance: '2.5 km'),
+                  _ShopTile(name: 'MotoFix Center', distance: '2.5 km'),
                 ],
               ),
             ),
           ],
         ),
       ),
-
-      // ─── Bottom Navigation ───────────────────────────────
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        selectedItemColor: accent,
-        unselectedItemColor: iconColor,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home),   label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.build),  label: 'Maintenance'),
-          BottomNavigationBarItem(icon: Icon(Icons.store),  label: 'Shops'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-        onTap: (_) {},
-      ),
     );
   }
 }
 
 class _ActionButton extends StatelessWidget {
-  final IconData   icon;
-  final String     label;
-  final Color      color;
+  final IconData    icon;
+  final String      label;
+  final Color       color;
   final VoidCallback onTap;
 
   const _ActionButton({
@@ -171,7 +181,9 @@ class _ShopTile extends StatelessWidget {
         title: Text(name, style: Theme.of(context).textTheme.bodyMedium),
         subtitle: Text(distance, style: Theme.of(context).textTheme.bodySmall),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {},
+        onTap: () {
+          // maybe open shop details
+        },
       ),
     );
   }
