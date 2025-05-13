@@ -72,6 +72,7 @@ class _MyAppState extends State<MyApp> {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
 
+    // Decide initial screen
     Widget home;
     if (!widget.seenOnboarding) {
       home = const OnboardingScreen();
@@ -91,13 +92,17 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       home: home,
       routes: {
-        '/login': (_) => const LoginScreen(),
-        '/register': (_) => const RegistrationScreen(),
+        '/login':      (_) => const LoginScreen(),
+        '/register':   (_) => const RegistrationScreen(),
         '/onboarding': (_) => const OnboardingScreen(),
-        '/app': (_) => AppShell(
-              currentMode: _themeMode,
-              onThemeChanged: _updateTheme,
-            ),
+        '/dashboard':  (_) => AppShell(              // ← added dashboard route
+                          currentMode: _themeMode,
+                          onThemeChanged: _updateTheme,
+                        ),
+        '/app':        (_) => AppShell(
+                          currentMode: _themeMode,
+                          onThemeChanged: _updateTheme,
+                        ),
       },
     );
   }
