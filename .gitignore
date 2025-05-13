@@ -56,3 +56,7 @@ app.*.map.json
 # Others
 *.lock
 migrate_working_dir/
+
+# Environment
+.env
+

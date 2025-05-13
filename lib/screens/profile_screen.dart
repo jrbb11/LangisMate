@@ -1,35 +1,31 @@
-// lib/screens/profile_screen.dart
-
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:postgrest/postgrest.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final ImagePicker _picker       = ImagePicker();
+  final ImagePicker _picker = ImagePicker();
   XFile? _pickedImage;
 
-  final _formKey                  = GlobalKey<FormState>();
-  final _firstNameCtrl            = TextEditingController();
-  final _lastNameCtrl             = TextEditingController();
-  final _emailCtrl                = TextEditingController();
-  final _phoneCtrl                = TextEditingController();
-  final _addressCtrl              = TextEditingController();
-  final _nicknameCtrl             = TextEditingController();
-  final _photoUrlCtrl             = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _firstNameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _nicknameCtrl = TextEditingController();
+  final _photoUrlCtrl = TextEditingController();
 
-  bool _loading       = true;
-  bool _saving        = false;
-  bool _editingEmail  = false;
+  bool _loading = true;
+  bool _saving = false;
+  bool _editingEmail = false;
 
   @override
   void initState() {
@@ -55,29 +51,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final supabase = Supabase.instance.client;
-    final user     = supabase.auth.currentUser;
+    final user = supabase.auth.currentUser;
     if (user == null) return setState(() => _loading = false);
 
     try {
       final row = await supabase
-        .from('user_profiles')
-        .select()
-        .eq('user_id', user.id)
-        .single() as Map<String, dynamic>;
+  .from('user_profiles')
+  .select()
+  .eq('user_id', user.id)
+  .single();
+
+
+      if (!mounted) return;
 
       _firstNameCtrl.text = row['first_name'] ?? '';
-      _lastNameCtrl.text  = row['last_name']  ?? '';
-      _emailCtrl.text     = row['email']      ?? '';
-      _phoneCtrl.text     = row['phone']      ?? '';
-      _addressCtrl.text   = row['address']    ?? '';
-      _nicknameCtrl.text  = row['nickname']   ?? '';
-      _photoUrlCtrl.text  = row['photo_url']  ?? '';
-    } on PostgrestException catch (err) {
+      _lastNameCtrl.text = row['last_name'] ?? '';
+      _emailCtrl.text = row['email'] ?? '';
+      _phoneCtrl.text = row['phone'] ?? '';
+      _addressCtrl.text = row['address'] ?? '';
+      _nicknameCtrl.text = row['nickname'] ?? '';
+      _photoUrlCtrl.text = row['photo_url'] ?? '';
+    } catch (err) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Load failed: ${err.message}')),
+        SnackBar(content: Text('Load failed: $err')),
       );
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -126,7 +126,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () {
             setState(() {
               if (_editingEmail) {
-                // cancel: reload original email
                 _loadProfile();
               }
               _editingEmail = !_editingEmail;
@@ -143,66 +142,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _saving = true);
 
     final supabase = Supabase.instance.client;
-    final user     = supabase.auth.currentUser;
-    if (user == null) return setState(() => _saving = false);
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      setState(() => _saving = false);
+      return;
+    }
 
     try {
       String photoUrl = _photoUrlCtrl.text.trim();
 
-      // 1️⃣ upload new image if picked
       if (_pickedImage != null) {
         final file = File(_pickedImage!.path);
-        final ext  = p.extension(file.path);
-        final key  = 'profiles/${user.id}$ext';
+        final ext = p.extension(file.path);
+        final key = 'profiles/${user.id}$ext';
 
         await supabase.storage
-            .from('profile-photos')
+            .from('profilephotos')
             .upload(key, file, fileOptions: const FileOptions(upsert: true));
 
-        photoUrl = supabase.storage.from('profile-photos').getPublicUrl(key);
+        photoUrl = supabase.storage.from('profilephotos').getPublicUrl(key);
       }
 
-      // 2️⃣ handle email change
       if (_editingEmail) {
-        // this will throw AuthException on error
         await supabase.auth.updateUser(
           UserAttributes(email: _emailCtrl.text.trim()),
         );
         _editingEmail = false;
       }
 
-      // 3️⃣ update profile table
       await supabase
-        .from('user_profiles')
-        .update({
-          'first_name': _firstNameCtrl.text.trim(),
-          'last_name':  _lastNameCtrl.text.trim(),
-          'email':      _emailCtrl.text.trim(),
-          'phone':      _phoneCtrl.text.trim(),
-          'address':    _addressCtrl.text.trim(),
-          'nickname':   _nicknameCtrl.text.trim(),
-          'photo_url':  photoUrl,
-        })
-        .eq('user_id', user.id);
+          .from('user_profiles')
+          .update({
+            'first_name': _firstNameCtrl.text.trim(),
+            'last_name': _lastNameCtrl.text.trim(),
+            'email': _emailCtrl.text.trim(),
+            'phone': _phoneCtrl.text.trim(),
+            'address': _addressCtrl.text.trim(),
+            'nickname': _nicknameCtrl.text.trim(),
+            'photo_url': photoUrl,
+          })
+          .eq('user_id', user.id);
+
+      if (!mounted) return;
 
       _photoUrlCtrl.text = photoUrl;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated')),
       );
-    } on AuthException catch (err) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Email change failed: ${err.message}')),
-      );
-    } on PostgrestException catch (err) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: ${err.message}')),
-      );
     } catch (err) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: $err')),
+        SnackBar(content: Text('Save failed: $err')),
       );
     } finally {
-      setState(() => _saving = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -216,8 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? FileImage(File(_pickedImage!.path))
         : (_photoUrlCtrl.text.isNotEmpty
             ? NetworkImage(_photoUrlCtrl.text)
-            : const AssetImage('assets/avatar_placeholder.png'))
-            as ImageProvider;
+            : const AssetImage('assets/avatar_placeholder.png'));
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Profile')),
@@ -225,17 +217,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // avatar + change photo
-            CircleAvatar(radius: 50, backgroundImage: avatar),
+            CircleAvatar(radius: 50, backgroundImage: avatar as ImageProvider),
             TextButton(onPressed: _pickImage, child: const Text('Change Photo')),
             const SizedBox(height: 24),
-
-            // form
             Form(
               key: _formKey,
               child: Column(
                 children: [
-                  // first + last
                   Row(
                     children: [
                       Expanded(
@@ -258,12 +246,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  // email
                   _buildEmailField(),
                   const SizedBox(height: 16),
-
-                  // phone
                   _buildField(
                     'Phone',
                     _phoneCtrl,
@@ -272,8 +256,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         (v == null || v.isEmpty) ? 'Enter phone number' : null,
                   ),
                   const SizedBox(height: 16),
-
-                  // address
                   _buildField(
                     'Address',
                     _addressCtrl,
@@ -281,8 +263,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         (v == null || v.isEmpty) ? 'Enter address' : null,
                   ),
                   const SizedBox(height: 16),
-
-                  // nickname
                   _buildField(
                     'Nickname',
                     _nicknameCtrl,
@@ -290,7 +270,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         (v == null || v.isEmpty) ? 'Enter nickname' : null,
                   ),
                   const SizedBox(height: 24),
-
                   _saving
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
