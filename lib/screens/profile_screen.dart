@@ -1,8 +1,13 @@
+// lib/screens/profile_screen.dart
+
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:langis_mate/widgets/base_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,18 +19,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   XFile? _pickedImage;
 
-  final _formKey = GlobalKey<FormState>();
-  final _firstNameCtrl = TextEditingController();
-  final _lastNameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-  final _nicknameCtrl = TextEditingController();
-  final _photoUrlCtrl = TextEditingController();
+  final _formKey        = GlobalKey<FormState>();
+  final _firstNameCtrl  = TextEditingController();
+  final _lastNameCtrl   = TextEditingController();
+  final _emailCtrl      = TextEditingController();
+  final _phoneCtrl      = TextEditingController();
+  final _addressCtrl    = TextEditingController();
+  final _nicknameCtrl   = TextEditingController();
+  final _photoUrlCtrl   = TextEditingController();
 
-  bool _loading = true;
-  bool _saving = false;
-  bool _editingEmail = false;
+  bool _loading     = true;
+  bool _saving      = false;
+  bool _editingEmail= false;
 
   @override
   void initState() {
@@ -42,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _phoneCtrl,
       _addressCtrl,
       _nicknameCtrl,
-      _photoUrlCtrl
+      _photoUrlCtrl,
     ]) {
       c.dispose();
     }
@@ -51,31 +56,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    if (user == null) return setState(() => _loading = false);
+    final user     = supabase.auth.currentUser;
+    if (user == null) {
+      setState(() => _loading = false);
+      return;
+    }
 
     try {
       final row = await supabase
-  .from('user_profiles')
-  .select()
-  .eq('user_id', user.id)
-  .single();
-
+          .from('user_profiles')
+          .select()
+          .eq('user_id', user.id)
+          .single();
 
       if (!mounted) return;
-
       _firstNameCtrl.text = row['first_name'] ?? '';
-      _lastNameCtrl.text = row['last_name'] ?? '';
-      _emailCtrl.text = row['email'] ?? '';
-      _phoneCtrl.text = row['phone'] ?? '';
-      _addressCtrl.text = row['address'] ?? '';
-      _nicknameCtrl.text = row['nickname'] ?? '';
-      _photoUrlCtrl.text = row['photo_url'] ?? '';
+      _lastNameCtrl.text  = row['last_name'] ?? '';
+      _emailCtrl.text     = row['email'] ?? '';
+      _phoneCtrl.text     = row['phone'] ?? '';
+      _addressCtrl.text   = row['address'] ?? '';
+      _nicknameCtrl.text  = row['nickname'] ?? '';
+      _photoUrlCtrl.text  = row['photo_url'] ?? '';
     } catch (err) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Load failed: $err')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Load failed: $err')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -88,7 +95,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
       maxHeight: 800,
       imageQuality: 80,
     );
-    if (picked != null) setState(() => _pickedImage = picked);
+    if (picked != null && mounted) {
+      setState(() => _pickedImage = picked);
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+
+    final supabase = Supabase.instance.client;
+    final user     = supabase.auth.currentUser;
+    if (user == null) {
+      setState(() => _saving = false);
+      return;
+    }
+
+    try {
+      String photoUrl = _photoUrlCtrl.text.trim();
+
+      if (_pickedImage != null) {
+        final file = File(_pickedImage!.path);
+        final ext  = p.extension(file.path);
+        final key  = 'profiles/${user.id}$ext';
+
+        await supabase.storage
+            .from('profilephotos')
+            .upload(key, file, fileOptions: const FileOptions(upsert: true));
+
+        photoUrl = supabase.storage.from('profilephotos').getPublicUrl(key);
+      }
+
+      if (_editingEmail) {
+        await supabase.auth.updateUser(
+          UserAttributes(email: _emailCtrl.text.trim()),
+        );
+        _editingEmail = false;
+      }
+
+      await supabase
+          .from('user_profiles')
+          .update({
+            'first_name': _firstNameCtrl.text.trim(),
+            'last_name':  _lastNameCtrl.text.trim(),
+            'email':      _emailCtrl.text.trim(),
+            'phone':      _phoneCtrl.text.trim(),
+            'address':    _addressCtrl.text.trim(),
+            'nickname':   _nicknameCtrl.text.trim(),
+            'photo_url':  photoUrl,
+          })
+          .eq('user_id', user.id);
+
+      if (!mounted) return;
+      _photoUrlCtrl.text = photoUrl;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated')),
+      );
+    } catch (err) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $err')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Widget _buildField(String label, TextEditingController ctrl,
@@ -125,9 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         TextButton(
           onPressed: () {
             setState(() {
-              if (_editingEmail) {
-                _loadProfile();
-              }
+              if (_editingEmail) _loadProfile();
               _editingEmail = !_editingEmail;
             });
           },
@@ -137,87 +206,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
-
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    if (user == null) {
-      setState(() => _saving = false);
-      return;
-    }
-
-    try {
-      String photoUrl = _photoUrlCtrl.text.trim();
-
-      if (_pickedImage != null) {
-        final file = File(_pickedImage!.path);
-        final ext = p.extension(file.path);
-        final key = 'profiles/${user.id}$ext';
-
-        await supabase.storage
-            .from('profilephotos')
-            .upload(key, file, fileOptions: const FileOptions(upsert: true));
-
-        photoUrl = supabase.storage.from('profilephotos').getPublicUrl(key);
-      }
-
-      if (_editingEmail) {
-        await supabase.auth.updateUser(
-          UserAttributes(email: _emailCtrl.text.trim()),
-        );
-        _editingEmail = false;
-      }
-
-      await supabase
-          .from('user_profiles')
-          .update({
-            'first_name': _firstNameCtrl.text.trim(),
-            'last_name': _lastNameCtrl.text.trim(),
-            'email': _emailCtrl.text.trim(),
-            'phone': _phoneCtrl.text.trim(),
-            'address': _addressCtrl.text.trim(),
-            'nickname': _nicknameCtrl.text.trim(),
-            'photo_url': photoUrl,
-          })
-          .eq('user_id', user.id);
-
-      if (!mounted) return;
-
-      _photoUrlCtrl.text = photoUrl;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated')),
-      );
-    } catch (err) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $err')),
-      );
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     final avatar = _pickedImage != null
         ? FileImage(File(_pickedImage!.path))
         : (_photoUrlCtrl.text.isNotEmpty
             ? NetworkImage(_photoUrlCtrl.text)
-            : const AssetImage('assets/avatar_placeholder.png'));
+            : const AssetImage('assets/avatar_placeholder.png'))
+            as ImageProvider;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
-      body: SingleChildScrollView(
+    return BaseScreen(
+      title: 'Profile',
+      currentRoute: '/profile',
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            CircleAvatar(radius: 50, backgroundImage: avatar as ImageProvider),
+            CircleAvatar(radius: 50, backgroundImage: avatar),
             TextButton(onPressed: _pickImage, child: const Text('Change Photo')),
             const SizedBox(height: 24),
             Form(
@@ -277,7 +288,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size.fromHeight(48),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: const Text('Save Changes'),
                         ),

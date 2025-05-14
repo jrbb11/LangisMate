@@ -1,19 +1,19 @@
-// lib/screens/shops_screen.dart
+// lib/screens/motorcycles_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:langis_mate/widgets/base_screen.dart';
 
-class ShopsScreen extends StatelessWidget {
-  const ShopsScreen({super.key});
+class MotorcyclesScreen extends StatelessWidget {
+  const MotorcyclesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BaseScreen(
-      title: 'Find Shops',
-      currentRoute: '/app',  // ← match the drawer’s routeName for Shops
+      title:        'My Motorcycles',
+      currentRoute: '/motorcycles',
       child: Center(
         child: Text(
-          'Map & list of nearby shops',
+          'List your motorcycles here',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
       ),

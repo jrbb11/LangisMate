@@ -1,20 +1,25 @@
+// lib/screens/settings_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:langis_mate/widgets/base_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final ThemeMode currentMode;
   final ValueChanged<ThemeMode> onThemeChanged;
 
   const SettingsScreen({
+    super.key,
     required this.currentMode,
     required this.onThemeChanged,
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
+    return BaseScreen(
+      title: 'Settings',
+      currentRoute: '/settings',
+      child: ListView(
+        padding: const EdgeInsets.all(16),
         children: ThemeMode.values.map((mode) {
           final label = {
             ThemeMode.system: 'Use System Theme',

@@ -3,11 +3,24 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:langis_mate/widgets/header.dart';
 
+import 'package:langis_mate/widgets/base_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  late final Future<Map<String, dynamic>?> _dashboardFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardFuture = _fetchDashboardData();
+  }
 
   Future<Map<String, dynamic>?> _fetchDashboardData() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -18,22 +31,22 @@ class DashboardScreen extends StatelessWidget {
         .select('first_name')
         .eq('user_id', userId)
         .maybeSingle();
-
     final profile = profileResult ?? {'first_name': 'User'};
 
-    final motorcycles = await Supabase.instance.client
+    final bikes = await Supabase.instance.client
         .from('motorcycles')
         .select('id')
         .eq('user_id', userId);
 
-    if (motorcycles.isEmpty) return {'first_name': profile['first_name']};
+    if (bikes.isEmpty) {
+      return {'first_name': profile['first_name']};
+    }
 
-    final motorcycleId = motorcycles.first['id'];
-
+    final bikeId = bikes.first['id'];
     final oilChange = await Supabase.instance.client
         .from('oil_changes')
         .select('next_due, odometer')
-        .eq('motorcycle_id', motorcycleId)
+        .eq('motorcycle_id', bikeId)
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
@@ -47,135 +60,43 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme     = Theme.of(context);
     final textTheme = theme.textTheme;
-    final colors = theme.colorScheme;
-    final accent = colors.primary;
+    final accent    = theme.colorScheme.primary;
     final cardColor = theme.cardColor;
 
-    return Scaffold(
-  appBar: PreferredSize(
-    preferredSize: const Size.fromHeight(kToolbarHeight + 8),
-    child: FutureBuilder<Map<String, dynamic>?>(
-      future: _fetchDashboardData(),
-      builder: (context, snapshot) {
-        // Loading state
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Header(
-            title: 'Loading...',
-            onMenuPressed: null,
-            onProfilePressed: null,
-            onSettingsPressed: null,
-          );
-        }
-        // Error or no user
-        if (snapshot.hasError || snapshot.data == null) {
-          return const Header(
-            title: 'Welcome!',
-            onMenuPressed: null,
-            onProfilePressed: null,
-            onSettingsPressed: null,
-          );
-        }
-        // Got data
-        final firstName = snapshot.data!['first_name'] as String;
-        return Header(
-          title: 'Hello $firstName!',
-          onMenuPressed: () => Scaffold.of(context).openDrawer(),
-          onProfilePressed: () => Navigator.pushNamed(context, '/profile'),
-          onSettingsPressed: () => Navigator.pushNamed(context, '/settings'),
-        );
-      },
-    ),
-  ),
-  body: Padding(
+    return BaseScreen(
+      title: 'LangisMate',
+      currentRoute: '/dashboard',
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            FutureBuilder(
-              future: _fetchDashboardData(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError || snapshot.data == null || snapshot.data?['next_due'] == null) {
-                  final firstName = snapshot.data?['first_name'] ?? 'User';
-                  return Card(
-                    color: cardColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 16),
-                          const Icon(Icons.motorcycle, size: 72, color: Colors.orange),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No motorcycle found.\nPlease add a motorcycle first.',
-                            style: textTheme.bodyMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.pushNamed(context, '/add-motorcycle'),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Motorcycle'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                final data = snapshot.data!;
-                final oilChangeDate = data['next_due'] != null
-                    ? DateFormat('MMMM dd, yyyy').format(DateTime.parse(data['next_due']))
-                    : 'No upcoming date';
-                final odometer = data['odometer'] != null ? '${data['odometer']} km' : '—';
-
-                return Card(
-                  color: cardColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.flash_on, color: accent, size: 20),
-                            const SizedBox(width: 6),
-                            Text(
-                              'LangisMate',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: accent,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Next Oil Change',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(oilChangeDate, style: textTheme.bodyMedium),
-                        Text('Odometer: $odometer', style: textTheme.bodyMedium),
-                      ],
-                    ),
-                  ),
-                );
-              },
+            // Flexible with loose fit lets the FutureBuilder/card 
+            // only be as tall as its content
+            Flexible(
+              fit: FlexFit.loose,
+              child: FutureBuilder<Map<String, dynamic>?>(
+                future: _dashboardFuture,
+                builder: (ctx, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final data = snapshot.data;
+                  if (snapshot.hasError || data == null || data['next_due'] == null) {
+                    final firstName = data?['first_name'] as String? ?? 'User';
+                    return _buildEmptyState(textTheme, cardColor, firstName);
+                  }
+                  final nextDueRaw = data['next_due'] as String;
+                  final nextDue = DateFormat('MMMM dd, yyyy')
+                      .format(DateTime.parse(nextDueRaw));
+                  final odometer = '${data['odometer']} km';
+                  return _buildInfoCard(textTheme, cardColor, accent, nextDue, odometer);
+                },
+              ),
             ),
+
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -187,8 +108,8 @@ class DashboardScreen extends StatelessWidget {
                   onTap: () {},
                 ),
                 _ActionButton(
-                  icon: Icons.build,
-                  label: 'Add Maintenance',
+                  icon: Icons.motorcycle,
+                  label: 'My Motorcycle',
                   color: accent,
                   onTap: () => Navigator.pushNamed(context, '/app', arguments: 1),
                 ),
@@ -205,14 +126,79 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildEmptyState(TextTheme textTheme, Color cardColor, String firstName) {
+    return Card(
+      color: cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // wrap content vertically
+          children: [
+            const Icon(Icons.motorcycle, size: 72, color: Colors.orange),
+            const SizedBox(height: 16),
+            Text(
+              'Hello $firstName!\nNo motorcycle found.\nPlease add one.',
+              style: textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/add-motorcycle'),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Motorcycle'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(
+    TextTheme textTheme,
+    Color cardColor,
+    Color accent,
+    String nextDue,
+    String odometer,
+  ) {
+    return Card(
+      color: cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // wrap content
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.flash_on, color: accent),
+                const SizedBox(width: 6),
+                Text(
+                  'LangisMate',
+                  style: textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.bold, color: accent),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Next Oil Change',
+              style: textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+            const SizedBox(height: 4),
+            Text(nextDue, style: textTheme.bodyMedium),
+            Text('Odometer: $odometer', style: textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
   const _ActionButton({
     super.key,
     required this.icon,
@@ -220,7 +206,10 @@ class _ActionButton extends StatelessWidget {
     required this.color,
     required this.onTap,
   });
-
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
     final body = Theme.of(context).textTheme.bodyMedium;

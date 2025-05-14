@@ -108,6 +108,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
       appBar: AppBar(title: const Text('Add Motorcycle')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

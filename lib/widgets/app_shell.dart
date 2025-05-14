@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../screens/dashboard_screen.dart';
-import '../screens/maintenance_screen.dart';
+import '../screens/motorcycles_screen.dart';  // ← updated
 import '../screens/shops_screen.dart';
 import '../screens/profile_screen.dart';
 
@@ -31,7 +31,6 @@ class _AppShellState extends State<AppShell> {
     _currentIndex = widget.initialIndex;
   }
 
-  /// If you pushNamed '/app' with an argument index, handle it here:
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -46,7 +45,7 @@ class _AppShellState extends State<AppShell> {
       case 0:
         return const DashboardScreen();
       case 1:
-        return const MaintenanceScreen();
+        return const MotorcyclesScreen();   // ← swapped in
       case 2:
         return const ShopsScreen();
       case 3:
@@ -66,10 +65,22 @@ class _AppShellState extends State<AppShell> {
         unselectedItemColor: Theme.of(context).iconTheme.color,
         onTap: (i) => setState(() => _currentIndex = i),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home),      label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.build),     label: 'Maintenance'),
-          BottomNavigationBarItem(icon: Icon(Icons.store),     label: 'Shops'),
-          BottomNavigationBarItem(icon: Icon(Icons.person),    label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.motorcycle),    // ← changed
+            label: 'Motorcycles',            // ← changed
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store),
+            label: 'Shops',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
       ),
     );
