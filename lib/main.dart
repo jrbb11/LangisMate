@@ -1,24 +1,27 @@
-// lib/main.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'dart:io';
 import 'theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'widgets/app_shell.dart';
+import 'screens/add_motorcycle_screen.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print('cwd: ${Directory.current.path}');
+  // Load environment variables
+  await dotenv.load();
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://krfjzwkrpbeoithyperk.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyZmp6d2tycGJlb2l0aHlwZXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5NTgwMTMsImV4cCI6MjA2MjUzNDAxM30.crr3F74jdqPU7fx9duybm-gaPxoNsG4EklGcJoD5_08',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   // Load onboarding & theme prefs
@@ -72,7 +75,6 @@ class _MyAppState extends State<MyApp> {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
 
-    // Decide initial screen
     Widget home;
     if (!widget.seenOnboarding) {
       home = const OnboardingScreen();
@@ -92,17 +94,21 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       home: home,
       routes: {
-        '/login':      (_) => const LoginScreen(),
-        '/register':   (_) => const RegistrationScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/register': (_) => const RegistrationScreen(),
         '/onboarding': (_) => const OnboardingScreen(),
-        '/dashboard':  (_) => AppShell(              // ← added dashboard route
-                          currentMode: _themeMode,
-                          onThemeChanged: _updateTheme,
-                        ),
-        '/app':        (_) => AppShell(
-                          currentMode: _themeMode,
-                          onThemeChanged: _updateTheme,
-                        ),
+        '/dashboard': (_) => AppShell(
+              currentMode: _themeMode,
+              onThemeChanged: _updateTheme,
+            ),
+        '/app': (_) => AppShell(
+              currentMode: _themeMode,
+              onThemeChanged: _updateTheme,
+            ),
+// 🆕 Motorcycle routes
+  '/add-motorcycle': (_) => const AddMotorcycleScreen(),
+  
+
       },
     );
   }

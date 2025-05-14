@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:langis_mate/widgets/header.dart';
+
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -52,29 +54,41 @@ class DashboardScreen extends StatelessWidget {
     final cardColor = theme.cardColor;
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: FutureBuilder(
-          future: _fetchDashboardData(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Text('Loading...', style: textTheme.headlineSmall);
-            } else if (snapshot.hasError) {
-              return Text('Welcome!', style: textTheme.headlineSmall);
-            }
-
-            final firstName = snapshot.data?['first_name'] ?? 'User';
-            return Text('Good morning, $firstName!', style: textTheme.headlineSmall);
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.pushNamed(context, '/settings'),
-          ),
-        ],
-      ),
-      body: Padding(
+  appBar: PreferredSize(
+    preferredSize: const Size.fromHeight(kToolbarHeight + 8),
+    child: FutureBuilder<Map<String, dynamic>?>(
+      future: _fetchDashboardData(),
+      builder: (context, snapshot) {
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Header(
+            title: 'Loading...',
+            onMenuPressed: null,
+            onProfilePressed: null,
+            onSettingsPressed: null,
+          );
+        }
+        // Error or no user
+        if (snapshot.hasError || snapshot.data == null) {
+          return const Header(
+            title: 'Welcome!',
+            onMenuPressed: null,
+            onProfilePressed: null,
+            onSettingsPressed: null,
+          );
+        }
+        // Got data
+        final firstName = snapshot.data!['first_name'] as String;
+        return Header(
+          title: 'Hello $firstName!',
+          onMenuPressed: () => Scaffold.of(context).openDrawer(),
+          onProfilePressed: () => Navigator.pushNamed(context, '/profile'),
+          onSettingsPressed: () => Navigator.pushNamed(context, '/settings'),
+        );
+      },
+    ),
+  ),
+  body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -97,15 +111,15 @@ class DashboardScreen extends StatelessWidget {
                           const Icon(Icons.motorcycle, size: 72, color: Colors.orange),
                           const SizedBox(height: 16),
                           Text(
-                            'No motorcycle found.\nPlease register a motorcycle first.',
+                            'No motorcycle found.\nPlease add a motorcycle first.',
                             style: textTheme.bodyMedium,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
-                            onPressed: () => Navigator.pushNamed(context, '/register-motorcycle'),
+                            onPressed: () => Navigator.pushNamed(context, '/add-motorcycle'),
                             icon: const Icon(Icons.add),
-                            label: const Text('Register Motorcycle'),
+                            label: const Text('Add Motorcycle'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange,
                               foregroundColor: Colors.white,

@@ -45,3 +45,4 @@ flutter:
     - assets/images/slide3_set_maintenance_reminders.png
     - assets/images/google_logo.png
     - assets/avatar_placeholder.png
+    - .env
